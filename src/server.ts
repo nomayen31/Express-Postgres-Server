@@ -104,14 +104,60 @@ app.get('/users/:id', async (req: Request, res: Response) => {
       })
     }
     console.log(result.rows);
-
   } catch (error: any) {
     res.status(500).json({
       success: false,
       message: error.message
     })
   }
+})
 
+app.put('/users/:id', async (req: Request, res: Response) => {
+  try {
+    const result = await pool.query(`UPDATE users SET name = $1, email = $2, age = $3, phone = $4, address = $5 WHERE id = $6 RETURNING *`, [req.body.name, req.body.email, req.body.age, req.body.phone, req.body.address, req.params.id]);
+    if (result.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found"
+      })
+    } else {
+      res.status(200).json({
+        success: true,
+        message: "User updated successfully",
+        data: result.rows[0]
+      })
+    }
+    console.log(result.rows);
+  } catch (error: any) {
+    res.status(500).json({
+      success: false,
+      message: error.message
+    })
+  }
+})
+
+app.delete('/users/:id', async (req: Request, res: Response) => {
+  try {
+    const result = await pool.query(`DELETE FROM users WHERE id = $1 RETURNING *`, [req.params.id]);
+    if (result.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found"
+      })
+    } else {
+      res.status(200).json({
+        success: true,
+        message: "User deleted successfully",
+        data: result.rows[0]
+      })
+    }
+    console.log(result.rows);
+  } catch (error: any) {
+    res.status(500).json({
+      success: false,
+      message: error.message
+    })
+  }
 })
 
 app.listen(port, () => {
