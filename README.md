@@ -6,3 +6,4 @@
 
 <!-- DataBase  -->
 <!-- npm install pg -->
+<!-- npm i -D @types/pg -->

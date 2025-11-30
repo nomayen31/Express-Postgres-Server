@@ -2,12 +2,34 @@ import express, { Request, Response } from "express";
 import { Pool } from "pg";
 import dotenv from "dotenv";
 import path from "path";
+import swaggerUi from "swagger-ui-express";
+import swaggerJsdoc from "swagger-jsdoc";
 dotenv.config({ path: path.join(process.cwd(), ".env") });
 const app = express();
 const port = 5000;
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+const swaggerOptions = {
+  definition: {
+    openapi: "3.0.0",
+    info: {
+      title: "Express Postgres API",
+      version: "1.0.0",
+      description: "A simple Express API with PostgreSQL",
+    },
+    servers: [
+      {
+        url: `http://localhost:${port}`,
+      },
+    ],
+  },
+  apis: ["./src/server.ts"], // files containing annotations as above
+};
+
+const swaggerDocs = swaggerJsdoc(swaggerOptions);
+app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerDocs));
 
 const pool = new Pool({
   connectionString: `${process.env.CONNECTION_STR}`
@@ -51,6 +73,38 @@ app.get("/", (req: Request, res: Response) => {
 });
 
 // user routes 
+/**
+ * @swagger
+ * /users:
+ *   post:
+ *     summary: Create a new user
+ *     tags: [Users]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - name
+ *               - email
+ *             properties:
+ *               name:
+ *                 type: string
+ *               email:
+ *                 type: string
+ *               age:
+ *                 type: integer
+ *               phone:
+ *                 type: string
+ *               address:
+ *                 type: string
+ *     responses:
+ *       201:
+ *         description: User created successfully
+ *       500:
+ *         description: Server error
+ */
 app.post('/users', async (req: Request, res: Response) => {
   const { name, email, age, phone, address } = req.body;
   try {
@@ -72,6 +126,20 @@ app.post('/users', async (req: Request, res: Response) => {
   }
 })
 
+/**
+ * @swagger
+ * /users:
+ *   get:
+ *     summary: Get all users
+ *     tags: [Users]
+ *     responses:
+ *       200:
+ *         description: Users fetched successfully
+ *       404:
+ *         description: Users not found
+ *       500:
+ *         description: Server error
+ */
 app.get('/users', async (req: Request, res: Response) => {
   try {
     const result = await pool.query(`SELECT * FROM users`);
@@ -81,12 +149,12 @@ app.get('/users', async (req: Request, res: Response) => {
         success: false,
         message: "Users not found"
       })
-    }else{
+    } else {
       res.status(200).json({
         success: true,
         message: "Users fetched successfully",
         data: result.rows
-        })
+      })
     }
   } catch (error: any) {
     res.status(500).json({
@@ -96,6 +164,27 @@ app.get('/users', async (req: Request, res: Response) => {
   }
 })
 
+/**
+ * @swagger
+ * /users/{id}:
+ *   get:
+ *     summary: Get a user by ID
+ *     tags: [Users]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         schema:
+ *           type: integer
+ *         required: true
+ *         description: The user ID
+ *     responses:
+ *       200:
+ *         description: User fetched successfully
+ *       404:
+ *         description: User not found
+ *       500:
+ *         description: Server error
+ */
 app.get('/users/:id', async (req: Request, res: Response) => {
   try {
     const result = await pool.query(`SELECT * FROM users WHERE id = $1`, [req.params.id]);
@@ -120,6 +209,44 @@ app.get('/users/:id', async (req: Request, res: Response) => {
   }
 })
 
+/**
+ * @swagger
+ * /users/{id}:
+ *   put:
+ *     summary: Update a user
+ *     tags: [Users]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         schema:
+ *           type: integer
+ *         required: true
+ *         description: The user ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               name:
+ *                 type: string
+ *               email:
+ *                 type: string
+ *               age:
+ *                 type: integer
+ *               phone:
+ *                 type: string
+ *               address:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: User updated successfully
+ *       404:
+ *         description: User not found
+ *       500:
+ *         description: Server error
+ */
 app.put('/users/:id', async (req: Request, res: Response) => {
   try {
     const result = await pool.query(`UPDATE users SET name = $1, email = $2, age = $3, phone = $4, address = $5 WHERE id = $6 RETURNING *`, [req.body.name, req.body.email, req.body.age, req.body.phone, req.body.address, req.params.id]);
@@ -144,6 +271,27 @@ app.put('/users/:id', async (req: Request, res: Response) => {
   }
 })
 
+/**
+ * @swagger
+ * /users/{id}:
+ *   delete:
+ *     summary: Delete a user
+ *     tags: [Users]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         schema:
+ *           type: integer
+ *         required: true
+ *         description: The user ID
+ *     responses:
+ *       200:
+ *         description: User deleted successfully
+ *       404:
+ *         description: User not found
+ *       500:
+ *         description: Server error
+ */
 app.delete('/users/:id', async (req: Request, res: Response) => {
   try {
     const result = await pool.query(`DELETE FROM users WHERE id = $1 RETURNING *`, [req.params.id]);
@@ -169,6 +317,39 @@ app.delete('/users/:id', async (req: Request, res: Response) => {
   }
 })
 
+/**
+ * @swagger
+ * /todos:
+ *   post:
+ *     summary: Create a new todo
+ *     tags: [Todos]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - title
+ *               - user_id
+ *             properties:
+ *               title:
+ *                 type: string
+ *               description:
+ *                 type: string
+ *               completed:
+ *                 type: boolean
+ *               due_date:
+ *                 type: string
+ *                 format: date
+ *               user_id:
+ *                 type: integer
+ *     responses:
+ *       201:
+ *         description: Todo created successfully
+ *       500:
+ *         description: Server error
+ */
 app.post('/todos', async (req: Request, res: Response) => {
   const { title, description, completed, due_date, user_id } = req.body;
 
@@ -194,6 +375,20 @@ app.post('/todos', async (req: Request, res: Response) => {
   }
 });
 
+/**
+ * @swagger
+ * /todos:
+ *   get:
+ *     summary: Get all todos
+ *     tags: [Todos]
+ *     responses:
+ *       200:
+ *         description: Todos fetched successfully
+ *       404:
+ *         description: Todos not found
+ *       500:
+ *         description: Server error
+ */
 app.get('/todos', async (req: Request, res: Response) => {
   try {
     const result = await pool.query(`SELECT * FROM todos`);
@@ -219,6 +414,27 @@ app.get('/todos', async (req: Request, res: Response) => {
   }
 })
 
+/**
+ * @swagger
+ * /todos/{id}:
+ *   get:
+ *     summary: Get a todo by ID
+ *     tags: [Todos]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         schema:
+ *           type: integer
+ *         required: true
+ *         description: The todo ID
+ *     responses:
+ *       200:
+ *         description: Todo fetched successfully
+ *       404:
+ *         description: Todo not found
+ *       500:
+ *         description: Server error
+ */
 app.get('/todos/:id', async (req: Request, res: Response) => {
   try {
     const result = await pool.query(`SELECT * FROM todos WHERE id = $1`, [req.params.id]);
@@ -243,6 +459,45 @@ app.get('/todos/:id', async (req: Request, res: Response) => {
   }
 })
 
+/**
+ * @swagger
+ * /todos/{id}:
+ *   put:
+ *     summary: Update a todo
+ *     tags: [Todos]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         schema:
+ *           type: integer
+ *         required: true
+ *         description: The todo ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               title:
+ *                 type: string
+ *               description:
+ *                 type: string
+ *               completed:
+ *                 type: boolean
+ *               due_date:
+ *                 type: string
+ *                 format: date
+ *               user_id:
+ *                 type: integer
+ *     responses:
+ *       200:
+ *         description: Todo updated successfully
+ *       404:
+ *         description: Todo not found
+ *       500:
+ *         description: Server error
+ */
 app.put('/todos/:id', async (req: Request, res: Response) => {
   try {
     const result = await pool.query(`UPDATE todos SET title = $1, description = $2, completed = $3, due_date = $4, user_id = $5 WHERE id = $6 RETURNING *`, [req.body.title, req.body.description, req.body.completed, req.body.due_date, req.body.user_id, req.params.id]);
@@ -267,6 +522,27 @@ app.put('/todos/:id', async (req: Request, res: Response) => {
   }
 })
 
+/**
+ * @swagger
+ * /todos/{id}:
+ *   delete:
+ *     summary: Delete a todo
+ *     tags: [Todos]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         schema:
+ *           type: integer
+ *         required: true
+ *         description: The todo ID
+ *     responses:
+ *       200:
+ *         description: Todo deleted successfully
+ *       404:
+ *         description: Todo not found
+ *       500:
+ *         description: Server error
+ */
 app.delete('/todos/:id', async (req: Request, res: Response) => {
   try {
     const result = await pool.query(`DELETE FROM todos WHERE id = $1 RETURNING *`, [req.params.id]);
