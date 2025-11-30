@@ -17,33 +17,34 @@ const pool = new Pool({
 
 const initDB = async () => {
   await pool.query(`
-        CREATE TABLE IF NOT EXISTS users(
-        id SERIAL PRIMARY KEY,
-        name VARCHAR(100) NOT NULL,
-        email VARCHAR(150) UNIQUE NOT NULL,
-        age INT,
-        phone VARCHAR(15),
-        address TEXT,
-        created_at TIMESTAMP DEFAULT NOW(),
-        updated_at TIMESTAMP DEFAULT NOW()
-        )
-        `);
+    CREATE TABLE IF NOT EXISTS users(
+      id SERIAL PRIMARY KEY,
+      name VARCHAR(100) NOT NULL,
+      email VARCHAR(150) UNIQUE NOT NULL,
+      age INT,
+      phone VARCHAR(15),
+      address TEXT,
+      created_at TIMESTAMP DEFAULT NOW(),
+      updated_at TIMESTAMP DEFAULT NOW()
+    )
+  `);
 
   await pool.query(`
-            CREATE TABLE IF NOT EXISTS todos(
-            id SERIAL PRIMARY KEY,
-            user_id INT REFERENCES users(id) ON DELETE CASCADE,
-            title VARCHAR(200) NOT NULL,
-            description TEXT,
-            completed BOOLEAN DEFAULT false,
-            due_date DATE,
-            created_at TIMESTAMP DEFAULT NOW(),
-            updated_at TIMESTAMP DEFAULT NOW()
-            )
-            `);
+    CREATE TABLE IF NOT EXISTS todos(
+      id SERIAL PRIMARY KEY,
+      user_id INT REFERENCES users(id) ON DELETE CASCADE,
+      title VARCHAR(200) NOT NULL,
+      description TEXT,
+      completed BOOLEAN DEFAULT false,
+      due_date DATE,
+      created_at TIMESTAMP DEFAULT NOW(),
+      updated_at TIMESTAMP DEFAULT NOW()
+    )
+  `);
 };
 
 initDB();
+
 
 app.get("/", (req: Request, res: Response) => {
   res.send("Hello This is next level developer!");
@@ -75,11 +76,18 @@ app.get('/users', async (req: Request, res: Response) => {
   try {
     const result = await pool.query(`SELECT * FROM users`);
     console.log(result.rows);
-    res.status(200).json({
-      success: true,
-      message: "Users fetched successfully",
-      data: result.rows
-    })
+    if (result.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "Users not found"
+      })
+    }else{
+      res.status(200).json({
+        success: true,
+        message: "Users fetched successfully",
+        data: result.rows
+        })
+    }
   } catch (error: any) {
     res.status(500).json({
       success: false,
@@ -139,7 +147,8 @@ app.put('/users/:id', async (req: Request, res: Response) => {
 app.delete('/users/:id', async (req: Request, res: Response) => {
   try {
     const result = await pool.query(`DELETE FROM users WHERE id = $1 RETURNING *`, [req.params.id]);
-    if (result.rows.length === 0) {
+    console.log(result);
+    if (result.rowCount === 0) {
       return res.status(404).json({
         success: false,
         message: "User not found"
@@ -159,6 +168,131 @@ app.delete('/users/:id', async (req: Request, res: Response) => {
     })
   }
 })
+
+app.post('/todos', async (req: Request, res: Response) => {
+  const { title, description, completed, due_date, user_id } = req.body;
+
+  try {
+    const result = await pool.query(
+      `INSERT INTO todos(title, description, completed, due_date, user_id)
+       VALUES($1, $2, $3, $4, $5)
+       RETURNING *`,
+      [title, description, completed, due_date, user_id]
+    );
+
+    return res.status(201).json({
+      success: true,
+      message: "Todo created successfully",
+      data: result.rows[0]
+    });
+
+  } catch (error: any) {
+    return res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+});
+
+app.get('/todos', async (req: Request, res: Response) => {
+  try {
+    const result = await pool.query(`SELECT * FROM todos`);
+    console.log(result.rows);
+    if (result.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "Todos not found"
+      })
+    } else {
+      res.status(200).json({
+        success: true,
+        message: "Todos fetched successfully",
+        data: result.rows
+      })
+    }
+    console.log(result.rows);
+  } catch (error: any) {
+    res.status(500).json({
+      success: false,
+      message: error.message
+    })
+  }
+})
+
+app.get('/todos/:id', async (req: Request, res: Response) => {
+  try {
+    const result = await pool.query(`SELECT * FROM todos WHERE id = $1`, [req.params.id]);
+    if (result.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "Todo not found"
+      })
+    } else {
+      res.status(200).json({
+        success: true,
+        message: "Todo fetched successfully",
+        data: result.rows[0]
+      })
+    }
+    console.log(result.rows);
+  } catch (error: any) {
+    res.status(500).json({
+      success: false,
+      message: error.message
+    })
+  }
+})
+
+app.put('/todos/:id', async (req: Request, res: Response) => {
+  try {
+    const result = await pool.query(`UPDATE todos SET title = $1, description = $2, completed = $3, due_date = $4, user_id = $5 WHERE id = $6 RETURNING *`, [req.body.title, req.body.description, req.body.completed, req.body.due_date, req.body.user_id, req.params.id]);
+    if (result.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "Todo not found"
+      })
+    } else {
+      res.status(200).json({
+        success: true,
+        message: "Todo updated successfully",
+        data: result.rows[0]
+      })
+    }
+    console.log(result.rows);
+  } catch (error: any) {
+    res.status(500).json({
+      success: false,
+      message: error.message
+    })
+  }
+})
+
+app.delete('/todos/:id', async (req: Request, res: Response) => {
+  try {
+    const result = await pool.query(`DELETE FROM todos WHERE id = $1 RETURNING *`, [req.params.id]);
+    console.log(result);
+    if (result.rowCount === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "Todo not found"
+      })
+    } else {
+      res.status(200).json({
+        success: true,
+        message: "Todo deleted successfully",
+        data: result.rows[0]
+      })
+    }
+    console.log(result.rows);
+  } catch (error: any) {
+    res.status(500).json({
+      success: false,
+      message: error.message
+    })
+  }
+})
+
+
 
 app.listen(port, () => {
   console.log(`Example app listening on port ${port}`);
