@@ -8,7 +8,8 @@ export const createUser = async (req: Request, res: Response) => {
       req.body.email,
       req.body.age,
       req.body.phone,
-      req.body.address
+      req.body.address,
+      req.body.password
     );
     console.log(result);
     res.status(201).json({

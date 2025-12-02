@@ -6,6 +6,7 @@ import logger from "./middleware/logger";
 import { userRoutes } from "./middleware/users/user.routes";
 import { todoRoutes } from "./middleware/todos/todo.routers";
 import { weatherRoutes } from "./middleware/weather/weather.routes";
+import { authRoutes } from "./middleware/auth/auth.router";
 
 const app = express();
 const port = config.port;
@@ -26,7 +27,8 @@ app.use('/todos', todoRoutes)
 // weather routes
 app.use('/weather', weatherRoutes)
 
-
+// auth routes
+app.use('/auth', authRoutes)
 // Not found route
 app.use((req, res) => {
   res.status(404).json({
