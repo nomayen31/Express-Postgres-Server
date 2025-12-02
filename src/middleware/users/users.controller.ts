@@ -1,11 +1,15 @@
 import { Request, Response } from "express";
-import { pool } from "../../config/Db";
 import { userService } from "./user.service";
 
-export const createUser =  async (req: Request, res: Response) => {
-  const { name, email, age, phone, address } = req.body;
+export const createUser = async (req: Request, res: Response) => {
   try {
-    const result = await userService.createUser(name, email, age, phone, address);
+    const result = await userService.createUser(
+      req.body.name,
+      req.body.email,
+      req.body.age,
+      req.body.phone,
+      req.body.address
+    );
     console.log(result);
     res.status(201).json({
       success: true,
@@ -69,7 +73,7 @@ export const getSingleUser = async (req: Request, res: Response) => {
   }
 }
 
-export const updateUser =  async (req: Request, res: Response) => {
+export const updateUser = async (req: Request, res: Response) => {
   try {
     const result = await userService.updateUser(req.params.id as string, req.body.name, req.body.email, req.body.age, req.body.phone, req.body.address);
     console.log(result.rows);
