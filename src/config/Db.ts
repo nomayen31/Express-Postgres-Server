@@ -31,6 +31,18 @@ const initDB = async () => {
       updated_at TIMESTAMP DEFAULT NOW()
     )
   `);
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS weather_history(
+  id SERIAL PRIMARY KEY,
+  user_id INT REFERENCES users(id) ON DELETE SET NULL,
+  city VARCHAR(100) NOT NULL,
+  country VARCHAR(100),
+  temperature FLOAT,
+  condition VARCHAR(255),
+  created_at TIMESTAMP DEFAULT NOW()
+)
+  `);
 };
 
 export default initDB;

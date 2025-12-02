@@ -3,6 +3,9 @@ import { weatherController } from "./weather.controller";
 
 const router = express.Router();
 
+
 router.get("/", weatherController.getWeatherByCity);
+router.get("/history", weatherController.getHistory);
+router.get("/history/user", weatherController.getHistoryByUser);
 
 export const weatherRoutes = router;
