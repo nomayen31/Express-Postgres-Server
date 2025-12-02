@@ -1,10 +1,11 @@
 import express, { Request, Response } from "express";
 
 import config from "./config";
-import initDB, { pool } from "./config/Db";
+import initDB from "./config/Db";
 import logger from "./middleware/logger";
 import { userRoutes } from "./middleware/users/user.routes";
 import { todoRoutes } from "./middleware/todos/todo.routers";
+import { weatherRoutes } from "./middleware/weather/weather.routes";
 
 const app = express();
 const port = config.port;
@@ -20,7 +21,10 @@ app.use("/users", userRoutes);
 
 // todoRoutes 
 
-app.use('/todos',todoRoutes)
+app.use('/todos', todoRoutes)
+
+// weather routes
+app.use('/weather', weatherRoutes)
 
 
 // Not found route
