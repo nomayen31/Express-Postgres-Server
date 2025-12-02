@@ -65,12 +65,15 @@ A successful request will return a JSON object containing the city information a
 
 
 
+URL to use from the client:
+http://localhost:5000/weather?city=Berlin&userId=YOUR_USER_ID
+
+To get the weather search history, make a GET request to:
+http://localhost:5000/weather/history
 
 
-
-
-
-
+You can now get weather search history for a specific user by making a GET request to:
+http://localhost:5000/weather/history/user?userId=YOUR_USER_ID
 
 
 
