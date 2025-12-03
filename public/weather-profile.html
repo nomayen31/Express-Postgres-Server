@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Weather Profile - Temperature Comparison</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            color: white;
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 2.5rem;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .chart-container {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            margin-bottom: 20px;
+        }
+
+        .controls {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            margin-bottom: 20px;
+        }
+
+        .controls h2 {
+            color: #667eea;
+            margin-bottom: 15px;
+            font-size: 1.5rem;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 600;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        .loading {
+            text-align: center;
+            color: white;
+            font-size: 1.2rem;
+            padding: 20px;
+        }
+
+        .error {
+            background: #ff6b6b;
+            color: white;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .stat-card {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+            text-align: center;
+        }
+
+        .stat-card h3 {
+            color: #667eea;
+            font-size: 0.9rem;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+        }
+
+        .stat-card p {
+            color: #333;
+            font-size: 1.8rem;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🌤️ Weather Temperature Comparison</h1>
+
+        <div id="error-container"></div>
+        <div id="loading" class="loading">Loading weather data...</div>
+
+        <div class="stats" id="stats" style="display: none;">
+            <div class="stat-card">
+                <h3>Total Searches</h3>
+                <p id="total-searches">0</p>
+            </div>
+            <div class="stat-card">
+                <h3>Highest Temperature</h3>
+                <p id="max-temp">0°C</p>
+            </div>
+            <div class="stat-card">
+                <h3>Lowest Temperature</h3>
+                <p id="min-temp">0°C</p>
+            </div>
+            <div class="stat-card">
+                <h3>Average Temperature</h3>
+                <p id="avg-temp">0°C</p>
+            </div>
+        </div>
+
+        <div class="controls" style="display: none;" id="controls">
+            <h2>Chart Options</h2>
+            <div class="button-group">
+                <button onclick="changeChartType('bar')">📊 Bar Chart</button>
+                <button onclick="changeChartType('line')">📈 Line Chart</button>
+                <button onclick="changeChartType('radar')">🎯 Radar Chart</button>
+                <button onclick="refreshData()">🔄 Refresh Data</button>
+            </div>
+        </div>
+
+        <div class="chart-container" style="display: none;" id="chart-container">
+            <canvas id="weatherChart"></canvas>
+        </div>
+    </div>
+
+    <script>
+        let weatherChart = null;
+        let weatherData = [];
+
+        // Fetch weather history data
+        async function fetchWeatherData() {
+            try {
+                const response = await fetch('/weather/history');
+                const result = await response.json();
+                
+                if (result.success) {
+                    weatherData = result.data;
+                    return weatherData;
+                } else {
+                    throw new Error(result.message || 'Failed to fetch weather data');
+                }
+            } catch (error) {
+                throw error;
+            }
+        }
+
+        // Create or update chart
+        function createChart(type = 'bar') {
+            const ctx = document.getElementById('weatherChart').getContext('2d');
+            
+            // Prepare data - get unique cities with their latest temperature
+            const cityMap = new Map();
+            weatherData.forEach(item => {
+                const key = `${item.city}, ${item.country}`;
+                if (!cityMap.has(key)) {
+                    cityMap.set(key, {
+                        label: key,
+                        temperature: item.temperature,
+                        country: item.country
+                    });
+                }
+            });
+
+            const labels = Array.from(cityMap.values()).map(item => item.label);
+            const temperatures = Array.from(cityMap.values()).map(item => item.temperature);
+
+            // Destroy existing chart if it exists
+            if (weatherChart) {
+                weatherChart.destroy();
+            }
+
+            // Create new chart
+            weatherChart = new Chart(ctx, {
+                type: type,
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Temperature (°C)',
+                        data: temperatures,
+                        backgroundColor: [
+                            'rgba(102, 126, 234, 0.6)',
+                            'rgba(118, 75, 162, 0.6)',
+                            'rgba(255, 99, 132, 0.6)',
+                            'rgba(54, 162, 235, 0.6)',
+                            'rgba(255, 206, 86, 0.6)',
+                            'rgba(75, 192, 192, 0.6)',
+                            'rgba(153, 102, 255, 0.6)',
+                            'rgba(255, 159, 64, 0.6)'
+                        ],
+                        borderColor: [
+                            'rgba(102, 126, 234, 1)',
+                            'rgba(118, 75, 162, 1)',
+                            'rgba(255, 99, 132, 1)',
+                            'rgba(54, 162, 235, 1)',
+                            'rgba(255, 206, 86, 1)',
+                            'rgba(75, 192, 192, 1)',
+                            'rgba(153, 102, 255, 1)',
+                            'rgba(255, 159, 64, 1)'
+                        ],
+                        borderWidth: 2,
+                        borderRadius: 5,
+                        fill: type === 'line' ? false : true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'top',
+                            labels: {
+                                font: {
+                                    size: 14,
+                                    weight: 'bold'
+                                }
+                            }
+                        },
+                        title: {
+                            display: true,
+                            text: 'Temperature Comparison Across Cities',
+                            font: {
+                                size: 18,
+                                weight: 'bold'
+                            },
+                            color: '#333'
+                        },
+                        tooltip: {
+                            backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                            titleFont: {
+                                size: 14
+                            },
+                            bodyFont: {
+                                size: 13
+                            },
+                            padding: 12,
+                            callbacks: {
+                                label: function(context) {
+                                    return `Temperature: ${context.parsed.y}°C`;
+                                }
+                            }
+                        }
+                    },
+                    scales: type !== 'radar' ? {
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: 'Temperature (°C)',
+                                font: {
+                                    size: 14,
+                                    weight: 'bold'
+                                }
+                            },
+                            grid: {
+                                color: 'rgba(0, 0, 0, 0.05)'
+                            }
+                        },
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Cities',
+                                font: {
+                                    size: 14,
+                                    weight: 'bold'
+                                }
+                            },
+                            grid: {
+                                display: false
+                            }
+                        }
+                    } : {}
+                }
+            });
+        }
+
+        // Update statistics
+        function updateStats() {
+            const temperatures = weatherData.map(item => item.temperature);
+            const total = weatherData.length;
+            const max = Math.max(...temperatures);
+            const min = Math.min(...temperatures);
+            const avg = (temperatures.reduce((a, b) => a + b, 0) / total).toFixed(1);
+
+            document.getElementById('total-searches').textContent = total;
+            document.getElementById('max-temp').textContent = `${max}°C`;
+            document.getElementById('min-temp').textContent = `${min}°C`;
+            document.getElementById('avg-temp').textContent = `${avg}°C`;
+        }
+
+        // Change chart type
+        function changeChartType(type) {
+            createChart(type);
+        }
+
+        // Refresh data
+        async function refreshData() {
+            document.getElementById('loading').style.display = 'block';
+            document.getElementById('chart-container').style.display = 'none';
+            document.getElementById('controls').style.display = 'none';
+            document.getElementById('stats').style.display = 'none';
+            await initializeApp();
+        }
+
+        // Show error
+        function showError(message) {
+            const errorContainer = document.getElementById('error-container');
+            errorContainer.innerHTML = `<div class="error">❌ ${message}</div>`;
+        }
+
+        // Initialize app
+        async function initializeApp() {
+            try {
+                document.getElementById('error-container').innerHTML = '';
+                const data = await fetchWeatherData();
+                
+                if (data.length === 0) {
+                    showError('No weather data available. Please search for some cities first!');
+                    document.getElementById('loading').style.display = 'none';
+                    return;
+                }
+
+                createChart('bar');
+                updateStats();
+                
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('chart-container').style.display = 'block';
+                document.getElementById('controls').style.display = 'block';
+                document.getElementById('stats').style.display = 'grid';
+            } catch (error) {
+                console.error('Error:', error);
+                showError(error.message || 'Failed to load weather data');
+                document.getElementById('loading').style.display = 'none';
+            }
+        }
+
+        // Initialize on page load
+        window.addEventListener('load', initializeApp);
+    </script>
+</body>
+</html>

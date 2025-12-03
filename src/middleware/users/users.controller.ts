@@ -9,7 +9,8 @@ export const createUser = async (req: Request, res: Response) => {
       req.body.age,
       req.body.phone,
       req.body.address,
-      req.body.password
+      req.body.password,
+      req.body.role
     );
     console.log(result);
     res.status(201).json({

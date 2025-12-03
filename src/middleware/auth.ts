@@ -14,7 +14,7 @@ const verifyTokenAsync = (token: string, secret: string) => {
   });
 };
 
-export const authMiddleware = () => {
+export const authMiddleware = (requiredRole?: string) => {
   return async (req: Request, res: Response, next: NextFunction) => {
     const authHeader = req.headers.authorization;
     if (!authHeader || !authHeader.startsWith("Bearer ")) {
@@ -26,7 +26,16 @@ export const authMiddleware = () => {
     const token = authHeader.split(" ")[1];
     try {
       const decoded = (await verifyTokenAsync(token, jwtSecret)) as JwtPayloadExt;
-      req.user = decoded; 
+      req.user = decoded;
+
+      // Check role if required
+      if (requiredRole && decoded.role !== requiredRole) {
+        return res.status(403).json({
+          success: false,
+          message: `Forbidden - Requires ${requiredRole} role`,
+        });
+      }
+
       next();
     } catch (err) {
       return res.status(401).json({

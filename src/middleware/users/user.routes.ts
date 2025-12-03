@@ -7,7 +7,7 @@ const router = express.Router();
 
 router.post("/",createUser);
 
-router.get("/", logger, authMiddleware(), getAllUsers)
+router.get("/", logger,  authMiddleware('admin'), getAllUsers)
 
 router.get("/:id", authMiddleware(), getSingleUser)
 

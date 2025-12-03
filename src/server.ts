@@ -13,6 +13,7 @@ const port = config.port;
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use(express.static('public'));
 
 app.get("/", logger, (req: Request, res: Response) => {
   res.send("Hello This is next level developer!");

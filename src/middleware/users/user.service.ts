@@ -11,17 +11,12 @@ type UserRow = {
   phone: string;
   address: string;
   password?: string;
+  role?: string;
   created_at?: string;
 };
 
 const createUser = async (
-  name: string,
-  email: string,
-  age: number,
-  phone: string,
-  address: string,
-  password: string
-): Promise<UserRow> => {
+name: string, email: string, age: number, phone: string, address: string, password: string, role: string): Promise<UserRow> => {
   // Basic validation (expand as needed)
   if (!password) throw new Error("Password is required");
   if (!email) throw new Error("Email is required");
@@ -38,24 +33,24 @@ const createUser = async (
 
   const result = await pool.query(
     `
-    INSERT INTO users (name, email, age, phone, address, password)
-    VALUES ($1, $2, $3, $4, $5, $6)
+    INSERT INTO users (name, email, age, phone, address, password, role)
+    VALUES ($1, $2, $3, $4, $5, $6, $7)
     RETURNING *
   `,
-    [name, email, age, phone, address, hashedPassword]
+    [name, email, age, phone, address, hashedPassword, role]
   );
 
   return result.rows[0];
 };
 
 const getAllUsers = async (): Promise<QueryResult<UserRow>> => {
-  const result = await pool.query("SELECT id, name, email, age, phone, address, created_at FROM users");
+  const result = await pool.query("SELECT id, name, email, age, phone, role,  address, created_at FROM users");
   return result;
 };
 
 const getSingleUser = async (id: string): Promise<QueryResult<UserRow>> => {
   const result = await pool.query(
-    `SELECT id, name, email, age, phone, address, created_at FROM users WHERE id = $1`,
+    `SELECT id, name, email, age, phone, address, role ,  created_at FROM users WHERE id = $1`,
     [id]
   );
   return result;
@@ -68,7 +63,8 @@ const updateUser = async (
   age?: number,
   phone?: string,
   address?: string,
-  password?: string
+  password?: string,
+  role?: string
 ): Promise<QueryResult<UserRow>> => {
   // Fetch current user
   const existing = await pool.query(`SELECT * FROM users WHERE id = $1`, [id]);
@@ -82,6 +78,7 @@ const updateUser = async (
   const newAge = age ?? current.age;
   const newPhone = phone ?? current.phone;
   const newAddress = address ?? current.address;
+  const newRole = role ?? current.role;
 
   // Only hash if password provided
   const newPassword = password ? await bcrypt.hash(password, 10) : current.password;
@@ -89,11 +86,11 @@ const updateUser = async (
   const result = await pool.query(
     `
     UPDATE users
-    SET name = $1, email = $2, age = $3, phone = $4, address = $5, password = $6
-    WHERE id = $7
+    SET name = $1, email = $2, age = $3, phone = $4, address = $5, password = $6, role = $7
+    WHERE id = $8
     RETURNING id, name, email, age, phone, address, created_at
   `,
-    [newName, newEmail, newAge, newPhone, newAddress, newPassword, id]
+    [newName, newEmail, newAge, newPhone, newAddress, newPassword, role, id]
   );
 
   return result;

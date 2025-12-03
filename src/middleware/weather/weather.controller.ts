@@ -66,8 +66,13 @@ const getHistoryByUser = async (req: Request, res: Response) => {
     }
 };
 
+const getWeatherProfile = (req: Request, res: Response) => {
+    res.sendFile('weather-profile.html', { root: './public' });
+};
+
 export const weatherController = {
     getWeatherByCity,
     getHistory,
-    getHistoryByUser
+    getHistoryByUser,
+    getWeatherProfile
 };
