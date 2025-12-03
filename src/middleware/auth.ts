@@ -13,8 +13,7 @@ const verifyTokenAsync = (token: string, secret: string) => {
     });
   });
 };
-
-export const authMiddleware = (requiredRole?: string) => {
+export const authMiddleware = (requiredRole?: string | string[]) => {
   return async (req: Request, res: Response, next: NextFunction) => {
     const authHeader = req.headers.authorization;
     if (!authHeader || !authHeader.startsWith("Bearer ")) {
@@ -27,15 +26,16 @@ export const authMiddleware = (requiredRole?: string) => {
     try {
       const decoded = (await verifyTokenAsync(token, jwtSecret)) as JwtPayloadExt;
       req.user = decoded;
-
       // Check role if required
-      if (requiredRole && decoded.role !== requiredRole) {
-        return res.status(403).json({
-          success: false,
-          message: `Forbidden - Requires ${requiredRole} role`,
-        });
+      if (requiredRole) {
+        const allowedRoles = Array.isArray(requiredRole) ? requiredRole : [requiredRole];
+        if (!decoded.role || !allowedRoles.includes(decoded.role)) {
+          return res.status(403).json({
+            success: false,
+            message: `Forbidden - Requires one of the following roles: ${allowedRoles.join(', ')}`,
+          });
+        }
       }
-
       next();
     } catch (err) {
       return res.status(401).json({
