@@ -1,16 +1,18 @@
 import express from "express";
 import { createUser, deleteUser, getAllUsers, getSingleUser, updateUser } from "./users.controller";
+import logger from "../logger";
+import {authMiddleware} from "../auth";
 
 const router = express.Router();
 
 router.post("/",createUser);
 
-router.get("/", getAllUsers)
+router.get("/", logger, authMiddleware(), getAllUsers)
 
-router.get("/:id", getSingleUser)
+router.get("/:id", authMiddleware(), getSingleUser)
 
-router.put("/:id", updateUser)
+router.put("/:id", authMiddleware(), updateUser)
 
-router.delete("/:id", deleteUser)
+router.delete("/:id", authMiddleware(), deleteUser)
 
 export  const  userRoutes = router;
